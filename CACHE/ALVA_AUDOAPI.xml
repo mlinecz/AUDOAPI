@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25" zv="Cache for Windows (x86-64) 2017.2.1 (Build 801_3U)" ts="2021-02-08 10:37:58">
+<Export generator="Cache" version="25" zv="Cache for Windows (x86-64) 2017.2.1 (Build 801_3U)" ts="2021-02-08 11:15:01">
 <Class name="ALVA.AUDO.API.Ciselniky">
 <IncludeCode>ALVAAUDO,OBMAC</IncludeCode>
 <Super>%RegisteredObject</Super>
@@ -162,7 +162,7 @@
 <Class name="ALVA.AUDO.API.IO.Prytanis">
 <IncludeCode>ALVAAUDO,OBMAC</IncludeCode>
 <Super>%RegisteredObject</Super>
-<TimeChanged>65782,78308.354819</TimeChanged>
+<TimeChanged>65783,40353.948343</TimeChanged>
 <TimeCreated>65771,71584.964876</TimeCreated>
 
 <Method name="test">
@@ -335,9 +335,9 @@
 		//
 		k myarrev
 		s myarrev("id")="AUDO|1015"
-		s myarrev("dsc")="Export dokladů pro Prytanis"
+		s myarrev("dsc")="období "_$g(myarrmsg(3))_", "_$g(myarrmsg(1))_", "_$g(myarrmsg(2))
 		s myarrev("key","OBD")=$g(myarrmsg(1))
-		s myarrev("msgmail",$i(arri("msgmail")))="export dokladů za období "_$g(myarrmsg(3))_", "_$g(myarrmsg(1))_", "_$g(myarrmsg(2))_", "
+		s myarrev("msgmail",$i(arri("msgmail")))="export dokladů za období "_$g(myarrmsg(3))_", "_$g(myarrmsg(1))_", "_$g(myarrmsg(2))
 		s err=##class(ALVA.AUDO.Udalosti).CreateEvent(.sys,.myarrev,"") i err zt		
 		k myarrev
 		k @myglb
@@ -16270,7 +16270,7 @@ Zapise naimportovana data</Description>
 <Class name="ALVA.AUDO.Udalosti">
 <IncludeCode>ALVAAUDO,OBMAC</IncludeCode>
 <Super>%RegisteredObject</Super>
-<TimeChanged>65782,77318.430465</TimeChanged>
+<TimeChanged>65783,39483.130738</TimeChanged>
 <TimeCreated>65782,77198.291129</TimeCreated>
 
 <Method name="Tree">
@@ -16307,7 +16307,7 @@ Zapise naimportovana data</Description>
 		s @glb@(1,5)="0~Plán dopravy"
 		s @glb@(1,6)="0~Zpracování"
 		s @glb@(1,7)="0~Export dat"
-		s @glb@(1,8,$i(cnt))="1~"_myagd_"|1015~Export dokladů pro Prytanis"
+		s @glb@(1,7,$i(cnt))="1~"_myagd_"|1015~Export dokladů pro Prytanis"
 	}
 	catch(ex)
 	{
