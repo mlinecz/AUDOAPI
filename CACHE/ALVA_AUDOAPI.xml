@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25" zv="Cache for Windows (x86-64) 2017.2.1 (Build 801_3U)" ts="2021-02-08 11:15:01">
+<Export generator="Cache" version="25" zv="Cache for Windows (x86-64) 2017.2.1 (Build 801_3U)" ts="2021-02-23 13:17:30">
 <Class name="ALVA.AUDO.API.Ciselniky">
 <IncludeCode>ALVAAUDO,OBMAC</IncludeCode>
 <Super>%RegisteredObject</Super>
@@ -2839,7 +2839,7 @@ Zapise naimportovana data</Description>
 <Class name="ALVA.AUDO.API.PlanDopravy">
 <IncludeCode>ALVAAUDO,OBMAC</IncludeCode>
 <Super>%RegisteredObject</Super>
-<TimeChanged>65776,44811.736447</TimeChanged>
+<TimeChanged>65793,48611.758866</TimeChanged>
 <TimeCreated>65724,39379.101241</TimeCreated>
 
 <UDLText name="T">
@@ -2893,7 +2893,6 @@ Zapise naimportovana data</Description>
 	s in("par","glb")="^||w"
 	w ##class(ALVA.AUDO.API.PlanDopravy).GetResources(.sys,.in,.out)
 	zw ^||w
-	*/
 	// VSTUP
 	s in("par","typ")=1
 	s in("par","cchglb")="^||wc"
@@ -2903,6 +2902,18 @@ Zapise naimportovana data</Description>
 	s in("par","datumDo")="15.11.2019"
 	s in("par","datum")="15.11.2019"
 	w ##class(ALVA.AUDO.API.PlanDopravy).GetResources(.sys,.in,.out)
+	
+	// VSTUP
+	s in("par","cchglb")="^||wc"
+    s in("par","pracoviste")="VSETIN_1"
+	s in("par","datum")="22.11.2019"
+	//w ##class(ALVA.AUDO.API.PlanDopravy).ListTurnusy(.sys,.in,.out) zw out
+	w ##class(ALVA.AUDO.API.PlanDopravy).ListObjednavky(.sys,.in,.out) zw out
+	*/
+	s in("par","provoz")=40
+	s in("par","turnus")=730
+	s in("par","datum")="01.02.2021"
+	w ##class(ALVA.AUDO.API.PlanDopravy).ListTurnusSpoje(.sys,.in,.out) zw out
 ]]></Implementation>
 </Method>
 
@@ -3186,7 +3197,7 @@ Zapise naimportovana data</Description>
 				 	i +$g(in("par","typ")) s hledatjm=$lfs(popis2,";")
 				 	s hledatcin=$lfs(popis1,";")								    //texty pro hledani podle cinnosti
 					s mycellval=$lb(iddoc,typ,typdoc,moznoedit,hrlod,hrldo,idikony,popis1,popis2,popis3,tooltip,barvatextu,barvapozadi,hledatrz,hledatjm,hledatcin)
-					s @glb@(3,os,hrl,$i(@glb@(3,os,hrl)))=mycellval
+					s @glb@(3,id,hrl,$i(@glb@(3,id,hrl)))=mycellval
 				}
 				//data doklady
 				s iddoc="" f {
@@ -3233,6 +3244,7 @@ Zapise naimportovana data</Description>
 				 	}
 				 	//popis podle vozidel - ridic(i)
 				 	i +$g(in("par","typ")) {
+					 	s popis2=""
 					 	s arros=$lg(myval,4)
 					 	f myidx=1:1:$ll(arros) {
 						 	s myos=$lg(arros,myidx) s myjm=""
@@ -3250,7 +3262,7 @@ Zapise naimportovana data</Description>
 				 	i +$g(in("par","typ")) s hledatjm=$lfs(popis2,";")
 				 	s hledatcin=$lfs(popis1,";")								    //texty pro hledani podle cinnosti
 					s mycellval=$lb(iddoc,typ,typdoc,moznoedit,hrlod,hrldo,idikony,popis1,popis2,popis3,tooltip,barvatextu,barvapozadi,hledatrz,hledatjm,hledatcin)
-					s @glb@(3,os,hrl,$i(@glb@(3,os,hrl)))=mycellval	
+					s @glb@(3,id,hrl,$i(@glb@(3,id,hrl)))=mycellval	
 				}
 				//data grafikon
 				s iddoc="" f {
@@ -3280,7 +3292,7 @@ Zapise naimportovana data</Description>
 				 	s hledatjm=jm													//texty pro hledani podle jmena
 				 	s hledatcin=$lb(idgfr)										    //texty pro hledani podle cinnosti
 					s mycellval=$lb(iddoc,typ,typdoc,moznoedit,hrlod,hrldo,idikony,popis1,popis2,popis3,tooltip,barvatextu,barvapozadi,hledatrz,hledatjm,hledatcin)
-					s @glb@(3,id,hrl,$i(@glb@(3,os,hrl)))=mycellval	
+					s @glb@(3,id,hrl,$i(@glb@(3,id,hrl)))=mycellval	
 				}			
 			}
 			//suma za id 
@@ -3790,6 +3802,239 @@ Zapise naimportovana data</Description>
 ]]></Implementation>
 </Method>
 
+<Method name="ListTurnusy">
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[&sys:%String,&in:%String,&out:%String]]></FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	// VSTUP
+	// in("par","id")=id planovaciho dokladu (idprac|hrl|rz|pc) pokud se edituje doklad ulozeny v databazi
+	// in("par","cchglb")=cache global pro sledovani, nutno vytvorit se startem okna, po uzavreni vymazat
+    // in("par","pracoviste")=id pracoviste
+	// in("par","datum")=dd.mm.rrrr
+	// CACHE
+	// @cchglb@(1,3,hrl,tu)=$lb(idtur)
+	// VYSTUP:
+	// out("arr",1,tu)=$lb(idtu,pouzito,tu,od,do) 
+	s ret=$$$OK
+	s err=""
+	$$$FROMSERVER
+	try {
+		k out
+		//pracovni global
+		s myglb="^||wrk.ALVA.AD("_$$gWrkALVAAD^OBapiED()_")" k @myglb
+        //vstupni promenne
+        s cchglb=$g(in("par","cchglb"))
+        s idprac=$g(in("par","pracoviste"))
+        s hrl=$$dn^OBapiED(in("par","datum"))
+		//dz
+		s dz=$$gFaDz^OBapiED(idfa)
+		//data planovaciho pracoviste
+		k arrprac s err=$$gPlnPrac^OBapiED(idfa,nmsp,idprac,"",.arrprac) i +err zt
+		// provozovna, zp
+		s idprv=$g(arrprac("dta",1)) s err=$$mkZP^OBapiED(idfa,idprv,"","",.zp) i +err zt
+		//pokud turnusy nejsou v cache globalu doplnim
+	    i ('$d(@cchglb@(1,3,hrl))) {
+		     s in("par","datumOd")=in("par","datum")
+			 s in("par","datumDo")=in("par","datum")
+			 s isok=##class(ALVA.AUDO.API.PlanDopravyFce).cchglbTurnusy(.sys,.in,"") i 'isok zt
+	    }
+	    s tu="" f {
+		    s tu=$o(@cchglb@(1,3,hrl,tu)) i tu="" q
+		    s idtu=$lg($g(@cchglb@(1,3,hrl,tu)),1)
+		    k myarr s err=$$gTur^OBapiED(idfa,nmsp,$p(idtu,"|",1),$p(idtu,"|",2),$p(idtu,"|",3),"",.myarr) i +err zt
+		    s od=$tr($j($g(myarr("dta",5)),0,2),".",":")
+		    s do=$tr($j($g(myarr("dta",6)),0,2),".",":")
+		    s out("arr",1,tu)=$lb(idtu,0,tu,od,do) 
+	    }
+ 		// projdu data v planu a oznacim pouzite
+ 		k arri s arri("idprac",idprac)=""
+ 		s arri("prv",idprv)=""
+ 		s arri("jiz","od")=hrl
+ 		s arri("jiz","do")=hrl
+ 		s arri("glb")=myglb
+ 		s err=$$lPln^OBapiED(idfa,nmsp,.arri,"") i +err zt
+		s rz="" f {
+			s rz=$o(@myglb@("p",idprac,hrl,rz)) i rz="" q
+			s pc="" f {
+				s pc=$o(@myglb@("p",idprac,hrl,rz,pc)) i pc="" q
+				i ($p($g(in("par","id")),"|",3)=rz)&($p($g(in("par","id")),"|",4)=pc) continue
+				k myarr s err=$$gPln^OBapiED(idfa,nmsp,idprac,hrl,rz,pc,"",.myarr) i +err zt
+				s tu="" f {
+					s tu=$o(myarr("arr",2,tu)) i tu="" q
+					s $li(out("arr",1,tu),2)=1
+				}
+			}
+		}
+	 k @myglb
+ 	}
+ catch (ex) {
+	s ret=$$$ERROR($$$GeneralError,$g(err)_ex.DisplayString())
+ }
+ q ret
+]]></Implementation>
+</Method>
+
+<Method name="ListTurnusSpoje">
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[&sys:%String,&in:%String,&out:%String]]></FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	// VSTUP
+	// in("par","provoz")=provoz - provoz pro turnus
+	// in("par","pracoviste")=id pracoviste (pokud neni znam provoz, program si to odvodi)
+	// in("par","turnus")=turnus
+	// in("par","datum")=dd.mm.rrrr
+	// VYSTUP:
+	// out("arr",1,cnt)=$lb(linka,spoj,casod,zastavkaod,casdo,zastavkado) 
+	s ret=$$$OK
+	s err=""
+	$$$FROMSERVER
+	try {
+		k out
+		//pracovni global
+		s idprv=$g(in("par","provoz"))
+        s idprac=$g(in("par","pracoviste"))
+        s tu=$g(in("par","turnus"))
+        s hrl=$$dn^OBapiED(in("par","datum"))
+		//
+		i (idprv="")&(idprac'="") {
+			//data planovaciho pracoviste
+			k arrprac
+			s err=$$gPlnPrac^OBapiED(idfa,nmsp,idprac,"",.arrprac) i +err zt
+			// provozovna
+			s idprv=$g(arrprac("dta",1))
+			k arrprac
+		}
+		//zp
+		s err=$$mkZP^OBapiED(idfa,idprv,"","",.zp) i +err zt
+		k myarr s err=$$gTur^OBapiED(idfa,nmsp,zp,tu,hrl,"",.myarr)
+		s minod="" f {
+			s minod=$o(myarr("arr","tur",minod)) i minod="" q
+			i $g(myarr("arr","tur",minod,"dta",2))=3 {
+				s mindo=$g(myarr("arr","tur",minod,"dta",1))
+				s tmod=$tr($j($$mh^OBapiED($j(minod,0,0)),0,2),".",":")
+				s tmdo=$tr($j($$mh^OBapiED($j((mindo#1440),0,0)),0,2),".",":")
+				s li=$g(myarr("arr","tur",minod,"dta",5))
+				s sp=$g(myarr("arr","tur",minod,"dta",6))
+				k myarrsp s err=$$gSp^OBapiED(idfa,nmsp,li,sp,hrl,"",.myarrsp)
+				s idzstod=$g(myarrsp("dta",6))
+				s idzstdo=$g(myarrsp("dta",7))
+				s zstod=""
+				i idzstod'="" {
+					 k myzstarr
+					 s err=$$gZst^OBapiED(idfa,nmsp,idzstod,"",.myzstarr)
+					 s zstod=$g(myzstarr("dta",1))
+					 k myzstarr
+				}
+				s zstdo=""
+				i idzstdo'="" {
+					 k myzstarr
+					 s err=$$gZst^OBapiED(idfa,nmsp,idzstdo,"",.myzstarr) 
+					 s zstdo=$g(myzstarr("dta",1))
+					 k myzstarr
+				}
+				s out("arr",1,$i(out("arr",1)))=$lb(li,sp,tmod,zstod,tmdo,zstdo) 
+			}
+		} 
+ 	}
+ catch (ex) {
+	s ret=$$$ERROR($$$GeneralError,$g(err)_ex.DisplayString())
+ }
+ q ret
+]]></Implementation>
+</Method>
+
+<Method name="ListObjednavky">
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[&sys:%String,&in:%String,&out:%String]]></FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	// VSTUP
+	// in("par","id")=id planovaciho dokladu (idprac|hrl|rz|pc) pokud se edituje doklad ulozeny v databazi
+	// in("par","cchglb")=cache global pro sledovani, nutno vytvorit se startem okna, po uzavreni vymazat
+    // in("par","pracoviste")=id pracoviste
+	// in("par","datum")=dd.mm.rrrr
+	// CACHE
+	// @cchglb@(1,4,hrl,cobj)=$lb(idobj)
+	// VYSTUP:
+	// out("arr",1,cobj)=$lb(idobj,pouzito,cobj,od,do,pocetautobusu,zakaznik,kam,pristaveni)
+	s ret=$$$OK
+	s err=""
+	$$$FROMSERVER
+	try {
+		k out
+		//pracovni global
+		s myglb="^||wrk.ALVA.AD("_$$gWrkALVAAD^OBapiED()_")" k @myglb
+        //vstupni promenne
+        s cchglb=$g(in("par","cchglb"))
+        s idprac=$g(in("par","pracoviste"))
+        s hrl=$$dn^OBapiED(in("par","datum"))
+		//dz
+		s dz=$$gFaDz^OBapiED(idfa)
+		//data planovaciho pracoviste
+		k arrprac s err=$$gPlnPrac^OBapiED(idfa,nmsp,idprac,"",.arrprac) i +err zt
+		// provozovna, zp
+		s idprv=$g(arrprac("dta",1)) s err=$$mkZP^OBapiED(idfa,idprv,"","",.zp) i +err zt
+		//nejsou objednavky v cache globalu, doplnim
+	    i '$d(@cchglb@(1,4,hrl)) {
+		     s in("par","datumOd")=in("par","datum")
+			 s in("par","datumDo")=in("par","datum")
+			 s isok=##class(ALVA.AUDO.API.PlanDopravyFce).cchglbObjednavky(.sys,.in,"") i 'isok zt
+	    }
+	    s cobj="" f {
+		    s cobj=$o(@cchglb@(1,4,hrl,cobj)) i cobj="" q
+		    s idobj=$lg($g(@cchglb@(1,4,hrl,cobj)),1)
+		    k myarr s err=$$gObj^OBapiED(idfa,nmsp,$p(idobj,"|",1),$p(idobj,"|",2),"",.myarr)
+ 		    i $g(myarr("dta",1))=1 continue        										// stav zruseno
+ 			i $g(myarr("dta",1))=4 continue        										// stav vyfakturovano
+ 			i +$g(myarr("dta",64)) continue        										// typ dopravy=cizi - preprodano
+ 			i +$g(myarr("dta",2))'=+hrl continue   										// neni totozny datum
+ 			i (($g(myarr("dta",76))'="")&($g(myarr("dta",76))'=idprac)) continue		//nesedi planovaci pracoviste
+ 			s od=$tr($j($$mh^OBapiED($g(myarr("dta",30))),0,2),".",":")
+ 			s do="" i $g(myarr("dta",34)) s do=$tr($j($$mh^OBapiED($g(myarr("dta",34))),0,2),".",":")
+ 			s pocetautobusu=$g(myarr("dta",37)) i 'pocetautobusu s pocetautobusu=1
+ 			s zakaznik=$g(myarr("dta",4))
+ 			s kam=$g(myarr("arr",1))
+ 			s pristaveni=$g(myarr("dta",28))
+ 			s out("arr",1,cobj)=$lb(idobj,0,cobj,od,do,pocetautobusu,zakaznik,kam,pristaveni)
+	    }
+ 		i $d(out("arr")) {
+	 		k arri
+ 			s arri("prv",idprv)=""
+ 			s arri("jiz","od")=hrl
+ 			s arri("jiz","do")=hrl
+ 			s arri("glb")=myglb
+ 			s err=$$lPln^OBapiED(idfa,nmsp,.arri,"") i +err zt
+ 			s myidprac="" f {
+	 			s myidprac=$o(@myglb@("p",myidprac)) i myidprac="" q
+	 			s rz="" f {
+		 			s rz=$o(@myglb@("p",myidprac,hrl,rz)) i rz="" q
+		 			s pc="" f {
+			 			s pc=$o(@myglb@("p",myidprac,hrl,rz,pc)) i pc="" q
+						i (myidprac=idprac)&($p($g(in("par","id")),"|",3)=rz)&($p($g(in("par","id")),"|",4)=pc) continue
+						k myarr s err=$$gPln^OBapiED(idfa,nmsp,myidprac,hrl,rz,pc,"",.myarr) i +err zt
+						i '$g(myarr("dta",6)) continue
+						s cobj=$g(myarr("dta",2)) i cobj="" continue
+						i '$d(out("arr",1,cobj)) continue
+						s $li(out("arr",1,cobj),6)=($lg(out("arr",1,cobj),6)-1)
+						i $lg(out("arr",1,cobj),6)<1 {
+							s $li(out("arr",1,cobj),6)=0
+							s $li(out("arr",1,cobj),2)=1
+						}
+ 					}
+ 				}
+ 			}
+		 	k @myglb
+ 		}
+	}
+ catch (ex) {
+	s ret=$$$ERROR($$$GeneralError,$g(err)_ex.DisplayString())
+ }
+ q ret
+]]></Implementation>
+</Method>
+
 <Method name="Get">
 <ClassMethod>1</ClassMethod>
 <FormalSpec><![CDATA[&sys:%String,&in:%String,&out:%String]]></FormalSpec>
@@ -3804,7 +4049,7 @@ Zapise naimportovana data</Description>
 	$$$FROMSERVER
 	try {
 		s idprac=$p($g(in("id")),"|",1) s hrl=$p($g(in("id")),"|",2) s rz=$p($g(in("id")),"|",3) s pc=$p($g(in("id")),"|",4)
-		k myarr s err=$$gPln^OBapiED(idfa,nmsp,idprac,hrl,spz,pc,"",.myarr) i +err zt
+		k myarr s err=$$gPln^OBapiED(idfa,nmsp,idprac,hrl,rz,pc,"",.myarr) i +err zt
 		k arri s arri("par",1)=0 s isok=..DataConversion(.sys,.arri,.myarr) i 'isok s err=isok zt
 		m out("dta")=myarr
 	}
@@ -3963,7 +4208,7 @@ Zapise naimportovana data</Description>
 <Class name="ALVA.AUDO.API.PlanDopravyFce">
 <IncludeCode>ALVAAUDO,OBMAC</IncludeCode>
 <Super>%RegisteredObject</Super>
-<TimeChanged>65768,69266.619832</TimeChanged>
+<TimeChanged>65792,50654.856507</TimeChanged>
 <TimeCreated>65724,39412.175093</TimeCreated>
 
 <Method name="seznamRidicu">
@@ -4217,7 +4462,7 @@ Zapise naimportovana data</Description>
         s hrlod=$$dn^OBapiED(in("par","datumOd"))
         s hrldo=$$dn^OBapiED(in("par","datumDo"))
         //kill
-        k @cchglb@(1,3)
+        f hrl=hrlod:1:hrldo k @cchglb@(1,3,hrl)
         //nastaveni programu
         k myarrprgset s err=$$gMainSet^OBapiED(idfa,nmsp,"",.myarrprgset) i +err zt
 		//data planovaciho pracoviste
@@ -4302,7 +4547,7 @@ Zapise naimportovana data</Description>
         s hrlod=$$dn^OBapiED(in("par","datumOd"))
         s hrldo=$$dn^OBapiED(in("par","datumDo"))
         //kill
-        k @cchglb@(1,4)
+        f hrl=hrlod:1:hrldo k @cchglb@(1,4,hrl)
         //nastaveni programu
         k myarrprgset s err=$$gMainSet^OBapiED(idfa,nmsp,"",.myarrprgset) i +err zt
 		//data planovaciho pracoviste
@@ -4320,13 +4565,14 @@ Zapise naimportovana data</Description>
 	 			 s rr=$o(myarro("arr",zp,rr)) i rr="" q
  				 s pcobj="" f {
 	 				 s pcobj=$o(myarro("arr",zp,rr,pcobj)) i pcobj="" q
- 					 s cobj=$g(myarro("arr",zp,rr,cobj))
+ 					 s cobj=$g(myarro("arr",zp,rr,pcobj))
  					 i cobj="" continue
  					 s idobj=zp_"|"_cobj
  					 //data objednavky
  					 k myarr s err=$$gObj^OBapiED(idfa,nmsp,zp,cobj,"",.myarr)
  					 //kontrola na pracoviste
  					 i ($g(myarr("dta",76))'="")&($g(myarr("dta",76))'=idprac) k myarr continue
+ 					 s hrl=$g(myarr("dta",2))
  					 s @cchglb@(1,4,hrl,cobj)=$lb(idobj)
  				 }
  			}
@@ -4346,7 +4592,7 @@ Zapise naimportovana data</Description>
 <Class name="ALVA.AUDO.API.RozvrhPracDobyRidici">
 <IncludeCode>ALVAAUDO,OBMAC</IncludeCode>
 <Super>%RegisteredObject</Super>
-<TimeChanged>65779,53242.730822</TimeChanged>
+<TimeChanged>65794,51572.366774</TimeChanged>
 <TimeCreated>65776,48234.196004</TimeCreated>
 
 <Method name="test">
@@ -4506,7 +4752,6 @@ Zapise naimportovana data</Description>
 		    s hrlOd=$$dn^OBapiED($g(in("datumOd")))
 	    	s hrlDo=$$dn^OBapiED($g(in("datumDo")))
         	s myglb=$g(in("glb"))
-        	k ^wwwj m ^wwwj(1)=in m ^wwwj(2)=@myglb
         	//naplanovana data
         	k arri
         	s arri("glb")=mylglb
@@ -28118,7 +28363,7 @@ err s $zt="" k out s:$g(err)="" err="1~"_$ze q "1~"_err
 ]]></Routine>
 
 
-<Routine name="OBapiEDInit" type="INT" languagemode="0" timestamp="65659,42946.025037"><![CDATA[
+<Routine name="OBapiEDInit" type="INT" languagemode="0" timestamp="65797,46538.984294"><![CDATA[
 OBapiEDInit q
  //
 ExportData(idfa,nmsp,in,out)
@@ -28212,6 +28457,7 @@ InitCis(idfa,nmsp,in,out)
  s ^[nmsp]OI("RKM",15)="OstatSledKm:OstSlKm"
  s ^[nmsp]OI("RKM",16)="KorekceTachAuto:KorTchgA"
  s ^[nmsp]OI("RKM",17)="KorekceTachRučně:KorTchgR"
+ s ^[nmsp]OI("RKM",18)="Přístavné a odstavné:PřístOdst"
  s ^[nmsp]OI("RKM",21)="Objížďky-vnitro:ObjVni"
  s ^[nmsp]OI("RKM",22)="Objížďky-dálkové:ObjDál"
  s ^[nmsp]OI("RKM",23)="Objížďky-město:ObjMěs"
@@ -31671,7 +31917,7 @@ err s $zt="" q 1_"~"_$ze_"/"_$tr($g(err),"~","/")
 ]]></Routine>
 
 
-<Routine name="OBapiEDOsExport" type="INT" languagemode="0" timestamp="64917,75708.767003"><![CDATA[
+<Routine name="OBapiEDOsExport" type="INT" languagemode="0" timestamp="65798,44509.486051"><![CDATA[
 OBapiEDOsExport
  //$$gDscOsExport^OBapiEDOsExport("VS_CSAD","user",.in,.out)
  //$$gValOsExport^OBapiEDOsExport("VS_CSAD","user",1305,"^w",.i,.o)
@@ -31729,6 +31975,7 @@ gDscOsExport(idfa,nmsp,in,out)
  s out("arr",$$gidItm(4,8,""))=$j("",3)_" "_"diety z pravidelné dopravy do limitu"_"~"_1_"~"_2
  s out("arr",$$gidItm(4,9,""))=$j("",3)_" "_"diety z pravidelné dopravy nad limit"_"~"_1_"~"_2
  //s out("arr",$$gidItm(4,10,""))=$j("",3)_" "_"počet stravenek"_"~"_3_"~"_3
+ s out("arr",$$gidItm(4,11,""))=$j("",3)_" "_"přesčasové hodiny (odpracováno-rozvrh)"_"~"_3_"~"_1
  q 0
 gValOsExport(idfa,nmsp,rrrrmm,glb,in,out)
  // out("KA",ka)=""
@@ -31924,6 +32171,28 @@ gValOsExport(idfa,nmsp,rrrrmm,glb,in,out)
 	 }
  }
  */
+ //=======================================
+ //prescasove hodiny (odpracovano-prescas)
+ //=======================================
+ k @glbdta s iscalc=0 s mymm=rrrrmm#100 s myrrrr=rrrrmm\100 s myhrlod="" s myhrldo=""
+ i idfa="PH_UMBRELLA" {
+	 //ctvrtletne
+	 i '(mymm#3) {
+		 s myhrlod=$$gminhrlrrmm^OBapiED((myrrrr*100)+(mymm-2))
+		 s myhrldo=$$gmaxhrlrrmm^OBapiED(rrrrmm)
+		 s iscalc=1
+	 }
+ }
+ i iscalc {
+ 	s err=$$gValOsPrescasy(idfa,nmsp,myhrlod,myhrldo,glbdta,"","") i +err zt
+ 	s osc="" f {
+	 	s osc=$o(@glbdta@("arr",1,osc)) i osc="" q
+	 	s myval=$g(@glbdta@("arr",1,osc))
+	 	s minrozvrh=$lg(myval,1) s minodpracovano=$lg(myval,2)
+	 	s @wglb@(osc,typdoc,11)=(minodpracovano-minrozvrh)
+ 	}
+ k @glbdta	 
+ }
  // ===========================
  // zapis do vysledneho globalu
  // ===========================
@@ -31995,6 +32264,7 @@ gValOsExport(idfa,nmsp,rrrrmm,glb,in,out)
  .s @glb@("arr",osc,rrrrmm,$$gidItm(4,8,""))=+$g(@wglb@(osc,4,8))
  .s @glb@("arr",osc,rrrrmm,$$gidItm(4,9,""))=+$g(@wglb@(osc,4,9))
  .//s @glb@("arr",osc,rrrrmm,$$gidItm(4,10,""))=+$g(@wglb@(osc,4,10))
+ .s @glb@("arr",osc,rrrrmm,$$gidItm(4,11,""))=+$g(@wglb@(osc,4,11))
  .//rozpis dokladu po dnech pro pravidelnou a nepravidelnou
  .f typdoc=1,2 d
  ..s zp="" f  s zp=$o(@wglb@(osc,typdoc,"d",zp)) q:zp=""  d
@@ -32026,7 +32296,77 @@ gKaOs(idfa,nmsp,in,out)
  i idfa="MB_TCBUS" s out("KA",12)=""
  //
  q 0
-err s $zt="" k out q:$g(err)'="" err q "1"_"~"_$ze
+gValOsPrescasy(idfa,nmsp,hrlod,hrldo,glb,in,out)
+ // @glb@("arr",1,osc)=$lb(minrozvrh,minodpracovano)
+ // @glb@("arr",1,osc,hrl)=$lb(minrozvrh,minodpracovano)
+ // napocet z dokladu predelat na fci $$mkSumDtaOs !
+ n (idfa,nmsp,hrlod,hrldo,glb,in,out) s $zt="err" k out s err=""
+ // chyby
+ i $g(idfa)="" s err="idfa=" zt "merr"
+ i $g(nmsp)="" s err="nmsp=" zt "merr"
+ i $g(hrlod)="" s err="hrlod=" zt "merr"
+ i $g(hrldo)="" s err="hrldo=" zt "merr"
+ //
+ s dz=$$gFaDz^OBapiED(idfa)
+ //rozvrh
+ s os="" f {
+	 s os=$o(^[nmsp]OBRPDOS(idfa,os)) i os="" q
+	 s hrl=hrlod-.01 f {
+		 s hrl=$o(^[nmsp]OBRPDOS(idfa,os,hrl)) i (hrl="")!(hrl>hrldo) q
+		 s myval=$g(^[nmsp]OBRPDOS(idfa,os,hrl))
+		 s minrozvrh=$lg(myval,1)
+		 i +minrozvrh {
+			 s $li(@glb@("arr",1,os,hrl),1)=minrozvrh
+		 }
+ 	 }
+ }
+ //ciselnik grafikonovych polozek
+ k arrcis20 s err=$$gCis^OBapiED(idfa,nmsp,20,"",.arrcis20) i +err zt
+ //grafikon
+ k arri,wrk s arri("par",1)=1
+ s err=$$lGrfOs^OBapiED(idfa,nmsp,hrlod,hrldo,.arri,.wrk) i +err zt
+ s os="" f {
+	 s os=$o(^CacheTempJB(wrk,dz,os)) i os="" q
+	 s hrl=hrlod-.01 f {
+		 s hrl=$o(^CacheTempJB(wrk,dz,os,hrl)) i (hrl="")!(hrl>hrldo) q
+		 s idgrf="" f {
+			 s idgrf=$o(^CacheTempJB(wrk,dz,os,hrl,idgrf)) i idgrf="" q
+			 k myarrgrf s err=$$gGrfOs^OBapiED(idfa,nmsp,os,hrl,idgrf,"",.myarrgrf) i +err zt
+			 //neni grafikon
+			 i '$d(arrcis20("arr",idgrf)) {
+				 s minodpracovano=$g(myarrgrf("dta",2))
+				 i +minodpracovano {
+					 s myval=$g(@glb@("arr",1,os,hrl))
+					 s $li(myval,2)=$lg(myval,2)+minodpracovano
+					 s @glb@("arr",1,os,hrl)=myval
+				 }
+			 }
+			 //je grafikon, zatim taky, uvidime, zda nebude nastaveni
+			 else {
+				 s minodpracovano=$g(myarrgrf("dta",2))
+				 i +minodpracovano {
+					 s myval=$g(@glb@("arr",1,os,hrl))
+					 s $li(myval,2)=$lg(myval,2)+minodpracovano
+					 s @glb@("arr",1,os,hrl)=myval
+				 }
+			 }
+		 }
+	 }
+ }
+ s os="" f {
+	 s os=$o(@glb@("arr",1,os)) i os="" q
+	 s minrozvrh=0
+	 s minodpracovano=0
+	 s hrl="" f {
+		 s hrl=$o(@glb@("arr",1,os,hrl)) i hrl="" q
+		 s myval=$g(@glb@("arr",1,os,hrl))
+		 s minrozvrh=minrozvrh+$lg(myval,1)
+		 s minodpracovano=minodpracovano+$lg(myval,2)
+	 }
+	 s @glb@("arr",1,os)=$lb(minrozvrh,minodpracovano)
+ }
+ q 0
+err s $zt="" k out q "1"_"~"_$g(err)_"/"_$ze
 ]]></Routine>
 
 
@@ -52662,7 +53002,7 @@ OBapiEDTurInfo q
 ]]></Routine>
 
 
-<Routine name="OBapiEDTurStat" type="INT" languagemode="0" timestamp="65630,50612.389088"><![CDATA[
+<Routine name="OBapiEDTurStat" type="INT" languagemode="0" timestamp="65794,54283.330874"><![CDATA[
 OBapiEDTurStat q
  // =============================
  // turnusy - EDISON - statistika
@@ -52706,7 +53046,7 @@ mkStaTur(idfa,nmsp,zp,wrk,in,out)
  i wrk k @myglb m @myglb=^CacheTempJB(wrk)
  // ========================================================================================
  //projdu global @myglb@("arr",1,tu a doplnim pripadne cas.varianty + od - do pro vypocet
- s blo=$g(@myglb@("dta",3))
+ s blo=$g(@myglb@("dta",3)) i blo="" s blo="-" //pokud neni blo, dam "-", nekde do padalo
  s tu="" f {
 	 s tu=$o(@myglb@("arr",1,tu)) i tu="" q
  	 s hrlf=+$g(@myglb@("dta",1))
