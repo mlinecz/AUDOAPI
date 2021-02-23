@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25" zv="Cache for Windows (x86-64) 2017.2.1 (Build 801_3U)" ts="2021-02-23 13:17:30">
+<Export generator="Cache" version="25" zv="Cache for Windows (x86-64) 2017.2.1 (Build 801_3U)" ts="2021-02-23 14:57:54">
 <Class name="ALVA.AUDO.API.Ciselniky">
 <IncludeCode>ALVAAUDO,OBMAC</IncludeCode>
 <Super>%RegisteredObject</Super>
@@ -2839,7 +2839,7 @@ Zapise naimportovana data</Description>
 <Class name="ALVA.AUDO.API.PlanDopravy">
 <IncludeCode>ALVAAUDO,OBMAC</IncludeCode>
 <Super>%RegisteredObject</Super>
-<TimeChanged>65793,48611.758866</TimeChanged>
+<TimeChanged>65798,52795.30718</TimeChanged>
 <TimeCreated>65724,39379.101241</TimeCreated>
 
 <UDLText name="T">
@@ -3655,7 +3655,6 @@ Zapise naimportovana data</Description>
 		 	s iddocs=""
 		 	i $d(^||wrk.ALVA.AD(wrkres,3,tu)) {
 			 	//^||wrk.ALVA.AD(wrk,3,tu)=$lb(cntos,cntrz,dsc1,dsc2,idtur)
-			 	s stav=1
 			 	s myval=$g(^||wrk.ALVA.AD(wrkres,3,tu))
 		 		s cntos=$lg(myval,1) s cntosobs=""
 		 		s cntrz=$lg(myval,2) s cntrzobs=""
@@ -3690,7 +3689,7 @@ Zapise naimportovana data</Description>
 						s iddocs=iddocs_iddoc
 			 		}
 		 		}
-		 		i cntos'<cntosobs s stav=1	
+		 		i cntos'>cntosobs s stav=1
 		 	}
 		 	s @glb@(3,tu)=$lb(idtur,tu,stav,cinnostpopis,cinnostinfo,kdojede,$lfs(iddocs,"~"))
 		 	k ^||wrk.ALVA.AD(wrkres,3,tu)
@@ -3705,7 +3704,6 @@ Zapise naimportovana data</Description>
 		 	s iddocs=""
 		 	i $d(^||wrk.ALVA.AD(wrkres,3,tu)) {
 			 	//^||wrk.ALVA.AD(wrk,3,tu)=$lb(cntos,cntrz,dsc1,dsc2,idtur)
-			 	s stav=1
 			 	s myval=$g(^||wrk.ALVA.AD(wrkres,3,tu))
 		 		s cntos=$lg(myval,1) s cntosobs=""
 		 		s cntrz=$lg(myval,2) s cntrzobs=""
@@ -3716,6 +3714,8 @@ Zapise naimportovana data</Description>
 		 		s iddoc="" f {
 			 		s myval="" s iddoc=$o(^||wrk.ALVA.AD(wrkres,3,tu,iddoc),1,myval) i iddoc="" q
 			 		//^||wrk.ALVA.AD(wrk,3,tu,idprac_"|"_hrl_"|"_rz_"|"_pc)=$lb(cntos,lbos,zask)
+			 		//pouzito
+			 		s stav=1
 			 		//neni-li na dokladu ridic pak jeden
 			 		s doccntos=$lg(myval,1) i 'doccntos s doccntos=1
 			 		s lbos=$lg(myval,2)
@@ -3741,7 +3741,7 @@ Zapise naimportovana data</Description>
 						s iddocs=iddocs_iddoc
 			 		}
 		 		}
-		 		i cntos'<cntosobs s stav=1	
+		 		i cntos'>cntosobs s stav=1	
 		 	}
 		 	s @glb@(3,tu)=$lb(idtur,tu,stav,cinnostpopis,cinnostinfo,kdojede,$lfs(iddocs,"~"))
 		 	k ^||wrk.ALVA.AD(wrkres,3,tu)
@@ -3786,7 +3786,7 @@ Zapise naimportovana data</Description>
 					s iddocs=iddocs_iddoc
 			 	}
  			}
- 			i cntrz'<cntrzobs s stav=1
+ 			i cntrz'>cntrzobs s stav=1
  			s @glb@(4,cobj)=$lb(idobj,cobj,stav,cinnostpopis,cinnostinfo,kdojede,$lfs(iddocs,"~"))
 	 	}
  	}
@@ -4066,6 +4066,7 @@ Zapise naimportovana data</Description>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
 	// VSTUP:
+	// in("oldid")=puvodni id planovaciho dokladu (idprac|hrl|rz|pc) (muze se zmenit rz)
 	// in("id")=id planovaciho dokladu (idprac|hrl|rz|pc)
 	// in("dta",... - data dokladu
 	// VYSTUP:
@@ -4074,11 +4075,26 @@ Zapise naimportovana data</Description>
 	s err=""
 	$$$FROMSERVER
 	try {
-		s idprac=$p($g(in("id")),"|",1) s hrl=$p($g(in("id")),"|",2) s rz=$p($g(in("id")),"|",3) s pc=$p($g(in("id")),"|",4)
+		//puvodni id dokladu
+		s oldid=$g(in("oldid"))
+		s oldidprac=$p(oldid,"|",1) s oldhrl=$p(oldid,"|",2) s oldrz=$p(oldid,"|",3) s oldpc=$p(oldid,"|",4)
+		//aktualni id dokladu
+		s id=$g(in("id"))
+		s idprac=$p(id,"|",1) s hrl=$p(id,"|",2) s rz=$p(id,"|",3) s pc=$p(id,"|",4)
+		//
 		i rz="" s rz="-"
 		k myarr m myarr=in("dta")
 		//datova konverze 
 		k arri s arri("par",1)=1 s isok=..DataConversion(.sys,.arri,.myarr) i 'isok s err=isok zt
+		//puvodni doklad s jinym id, nactu a prepisu needitovane udaje a doklad vymazu
+		i (oldid'="")&(oldid'=id) {
+			k myoldarr s err=$$gPln^OBapiED(idfa,nmsp,oldidprac,oldhrl,oldrz,oldpc,"",.myoldarr) i +err zt
+			//horlog tisku
+			m myarr("arr",6)=myoldarr("arr",6)
+			k myoldarr
+			//delete dokladu
+			s err=$$dPln^OBapiED(idfa,nmsp,oldidprac,oldhrl,oldspz,oldpc,"","") i +err zt
+		}
 		k arro s err=$$sPln^OBapiED(idfa,nmsp,idprac,hrl,spz,pc,.myarr,.arro) i +err zt
  		s out("id")=idprac_"|"_hrl_"|"_rz_"|"_$g(arro("pc"))
  		/*
@@ -4592,7 +4608,7 @@ Zapise naimportovana data</Description>
 <Class name="ALVA.AUDO.API.RozvrhPracDobyRidici">
 <IncludeCode>ALVAAUDO,OBMAC</IncludeCode>
 <Super>%RegisteredObject</Super>
-<TimeChanged>65794,51572.366774</TimeChanged>
+<TimeChanged>65798,53152.707359</TimeChanged>
 <TimeCreated>65776,48234.196004</TimeCreated>
 
 <Method name="test">
@@ -4771,6 +4787,10 @@ Zapise naimportovana data</Description>
 			        	s rz=$o(@mylglb@("p",idprac,hrl,rz)) i rz="" q
 			        	s pc="" f {
 				        	s pc=$o(@mylglb@("p",idprac,hrl,rz,pc)) i pc="" q
+				        	//ne smena z volna
+				        	k myarr s err=$$gPln^OBapiED(idfa,nmsp,idprac,hrl,rz,pc,"",.myarr) i +err zt
+				        	i $g(myarr("dta",13)) continue 
+							k myarr
 				        	//zatim takto, volaji se tam fce z dokladu, az bude predelano, prejit na AUDO
 				        	k myarr s err=##class(ALVA.ADPLANDOPRAVY.PlanData1).gPlnVykDta(idfa,nmsp,idprac,hrl,rz,pc,"",.myarr)
 							i ('err)&($d(myarr("arr",1))) {
