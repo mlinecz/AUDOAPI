@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25" zv="Cache for Windows (x86-64) 2017.2.1 (Build 801_3U)" ts="2021-02-23 14:57:54">
+<Export generator="Cache" version="25" zv="Cache for Windows (x86-64) 2017.2.1 (Build 801_3U)" ts="2021-02-24 14:31:24">
 <Class name="ALVA.AUDO.API.Ciselniky">
 <IncludeCode>ALVAAUDO,OBMAC</IncludeCode>
 <Super>%RegisteredObject</Super>
@@ -1539,7 +1539,7 @@ Zapise naimportovana data</Description>
 <Class name="ALVA.AUDO.API.ObecneFceOs">
 <IncludeCode>ALVAAUDO,OBMAC</IncludeCode>
 <Super>%RegisteredObject</Super>
-<TimeChanged>65780,48969.708798</TimeChanged>
+<TimeChanged>65799,47567.352676</TimeChanged>
 <TimeCreated>65686,50409.731892</TimeCreated>
 
 <Method name="test">
@@ -1689,6 +1689,28 @@ Zapise naimportovana data</Description>
 		}
 	}
 	q ret
+]]></Implementation>
+</Method>
+
+<Method name="GetZU">
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[&sys:%String,&os:%String,&out:%String]]></FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+   //vrati nektere zakladni udaje pro os - rychle
+   //out("jmeno")=jmeno
+   //out("rz")=rz
+   //out("IdFa")=idfa
+   s ret=$$$OK k out
+   s err=""
+   try {
+	  $$$FROMSERVER
+	  d ##class(ALVA.MZDY.Ridici).LoadZamPrimo(idfa,nmsp,os,.out)
+   }
+   catch (ex) {
+      s ret=err_ex.DisplayString()
+   }
+   q ret
 ]]></Implementation>
 </Method>
 
@@ -2024,7 +2046,7 @@ Zapise naimportovana data</Description>
 <Class name="ALVA.AUDO.API.ObecneFceRZ">
 <IncludeCode>ALVAAUDO,OBMAC</IncludeCode>
 <Super>%RegisteredObject</Super>
-<TimeChanged>65689,71927.433861</TimeChanged>
+<TimeChanged>65799,46947.636377</TimeChanged>
 <TimeCreated>65689,70659.05399</TimeCreated>
 
 <Method name="test">
@@ -2046,6 +2068,149 @@ Zapise naimportovana data</Description>
     s in("pracoviste")="VSETIN"
     s in("datumZapujcky")="10.10.2018"
     w ##class(ALVA.AUDO.API.ObecneFceRZ).DefListWinRZ(.sys,.in,.out) w ! zw in zw out
+]]></Implementation>
+</Method>
+
+<Method name="Get">
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[&sys:%String,&in:%String,&out:%String]]></FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	// kompletni data ridice
+	// in:
+	// in("os")=rz	 								... vybrana rz
+	// in("datum")=dd.mm.rrrr						... datum, ke kteremu vybirat ridice
+	// out:
+	// out("dta",cnt)=val
+	// =====================
+	// cnt = val
+	// =====================
+	//  1 = vyrazeno (0/1)
+	//  2 = spz
+    //  3 = zp  
+ 	//  4 = ns
+ 	//  5 = typ AD
+ 	//  6 = typ AD, textovy popis
+ 	//  7 = uvedeni do provozu hrl
+ 	//  8 = kloubovy bus (0/1)
+ 	//  9 = trolejbus    (0/1)
+ 	// 10 = serie a cislo tech.prukazu
+ 	// 11 = platnost tech.prukazu od (hrl)
+ 	// 12 = druh pohonu 1 N / 2 P / 3 B / 4 bez / 5 elektrina
+ 	// 13 = EURO
+ 	// 14 = koeficient PH
+ 	// 15 = zakladni norma PH
+ 	// 16 = zimni norma PH
+ 	// 17 = koeficient tachografu
+ 	// 18 = obsaditelnost
+ 	// 19 = pocet mist k sezeni
+ 	// 20 = stanoviste vozidla
+ 	// 21 = specialni vybaveni kuchynka (0 / 1)
+ 	// 22 = specialni vybaveni zaves (0 / 1)
+ 	// 23 = specialni vybaveni klimatizace (0 / 1)
+ 	// 24 = specialni vybaveni sedadlo pruvodce (0 / 1)
+ 	// 25 = specialni vybaveni skikorba (0 / 1)
+ 	// 26 = plosina pro invalidy (0 / 1)
+ 	// 27 = tarifni sazba Kc/km
+ 	// 28 = tarifni sazba Kc/15 minut cekani
+ 	// 29 = tarifni sazba Kc/15 vykonu
+ 	// 30 = obsah nadrze v litrech 
+	// 31 = cizi vozidlo (0 / 1)
+ 	// 32 = statni dotace (0 / 1)
+ 	// 33 = idrz
+ 	// 34 = skutecny typ rz
+ 	// 35 = alternativni typ rz
+ 	// 36 = druh statni dotace
+ 	// 37 = datum statni dotace
+ 	// 38 = dotace na nakup
+ 	// 39 = druh dotace na nakup
+ 	// 40 = datum dotace na nakup
+ 	// 41 = evidencni cislo vozidla
+ 	// 42 = nizkopodlazni vozidlo
+    s ret=$$$OK k out s err=""
+	try  {
+		$$$FROMSERVER
+	    s rz=$g(in("rz"))
+	    s hrl="" i $g(in("datum")) s hrl=$$dn^OBapiED($g(in("datum")))
+	    i $g(idfa)="" s err="idfa=" zt
+		i $g(rz)="" s err="rz=" zt
+		i $g(hrl)="" s hrl=+$h
+		//nmsp pro vozidla
+		s nmsprz=$$GetSystemDB^ALVAVOZIDLAapiC()
+		//dostupne druhy typu
+		s err=$$gDtypRZ^OBapiED(idfa,nmsp,"",.arrdtyp) i +err zt
+		k arri,arr
+		//pozadovane polozky z vozidel
+		f cnt=2,7,8,11,15,18,30,31,32,34,35,37,38,39,40,41,42,43,47,50,51,52,53,54,65,124,125,126,127,128,163 s arri("a","dta",cnt)=""
+		s err=$$VehicleRead2^ALVAVOZIDLAapiC(nmsprz,rz,.arr,"",hrl,.arri)
+		i err zt
+	    s err=""
+	    s out("dta",1)=(+$g(arr("M",2))=3)										;; vyrazeno (0/1)								
+ 		s out("dta",2)=$g(arr("M",1))   					    				;; rz
+ 		s val=$$VehicleGetRz^ALVAVOZIDLAapiC(nmsprz,rz,hrl)
+ 		i (val'=-1)&(val'=-2) s out("dta",2)=val 
+ 		s out("dta",3)=$g(arr("M",7))  		    	  			                ;; zp
+ 		s val=$$VehicleGetZzpp^ALVAVOZIDLAapiC(nmsprz,rz,hrl)
+ 		s:val>0 out("dta",3)=val
+ 		s out("dta",4)=$g(arr("M",6))    										;; stredisko
+ 		s val=$$VehicleGetNs^ALVAVOZIDLAapiC(nmsprz,rz,hrl)
+ 		s:val>0 out("dta",4)=val
+ 		// typ pro AD (druh typu = 0,1,6)
+ 		s typAD=$g(arr("M",4))
+ 		i ('$d(arrdtyp("arr",0,$$TypVozidla2DruhTypu^ALVAVOZIDLAapiC(typAD))))&('$d(arrdtyp("arr",1,$$TypVozidla2DruhTypu^ALVAVOZIDLAapiC(typAD)))) {
+	 		i $g(arr("M",5)) {
+		 		i ($d(arrdtyp("arr",0,$$TypVozidla2DruhTypu^ALVAVOZIDLAapiC($g(arr("M",5)))))) {
+		 		s typAD=$g(arr("M",5))
+	 			}
+	 			i ($d(arrdtyp("arr",1,$$TypVozidla2DruhTypu^ALVAVOZIDLAapiC($g(arr("M",5)))))) {
+		 		s typAD=$g(arr("M",5))
+	 			}
+	 		}
+ 		}
+ 		s out("dta",5)=typAD													;; typ AD
+ 		k myarr s err=$$VehicleTypeRead^ALVAVOZIDLAapiC(idfa,nmsprz,(+typAD),.myarr)								
+ 		s out("dta",6)=$g(myarr("dta",1)) k myarr							 	;; typ AD, textovy popis
+ 		s out("dta",7)=$g(arr("M",9))											;; datum uvedeni do provozu (hrl)
+ 		s out("dta",8)=$g(arr("a","dta",37))									;; kloubak (0 / 1)
+ 		s out("dta",9)=$g(arr("a","dta",38))									;; trolejbus (0 / 1)
+ 		s out("dta",10)=$g(arr("a","dta",7))									;; serie a cislo tech.prukazu
+ 		s out("dta",11)=$g(arr("a","dta",8))									;; platnost tech.prukazu od
+ 		s out("dta",12)=$g(arr("a","dta",15)) 									;; druh pohonu 1 N / 2 P / 3 B / 4 bez / 5 elektrina
+ 		s out("dta",13)=$g(arr("a","dta",18))									;; EURO
+ 		s out("dta",14)=$g(arr("a","dta",32))									;; koeficient PH
+ 		s out("dta",15)=$g(arr("a","dta",30))									;; zakladni norma PH
+ 		s out("dta",16)=$g(arr("a","dta",31))									;; zimni norma PH
+ 		s out("dta",17)=$g(arr("a","dta",34))				  					;; koeficient tachografu
+ 		s out("dta",18)=$g(arr("a","dta",35))									;; obsaditelnost
+ 		s out("dta",19)=$g(arr("a","dta",11))									;; pocet mist k sezeni
+ 		s out("dta",20)=$g(arr("a","dta",40))									;; stanoviste vozidla
+ 		s out("dta",21)=$g(arr("a","dta",50))									;; specialni vybaveni kuchynka (0 / 1)
+ 		s out("dta",22)=$g(arr("a","dta",51))									;; specialni vybaveni zaves (0 / 1)
+ 		s out("dta",23)=$g(arr("a","dta",47))									;; specialni vybaveni klimatizace (0 / 1)
+ 		s out("dta",24)=$g(arr("a","dta",52))									;; specialni vybaveni sedadlo pruvodce (0 / 1)
+ 		s out("dta",25)=$g(arr("a","dta",53))									;; specialni vybaveni skikorba (0 / 1)
+ 		s out("dta",26)=$g(arr("a","dta",54))									;; plosina pro invalidy (0 / 1)
+ 		s out("dta",27)=$g(arr("a","dta",41))									;; tarifni sazba Kc/km
+ 		s out("dta",28)=$g(arr("a","dta",42))									;; tarifni sazba Kc/15 minut cekani
+ 		s out("dta",29)=$g(arr("a","dta",43))									;; tarifni sazba Kc/15 vykonu
+ 		s out("dta",30)=$g(arr("a","dta",65)) 									;; obsah nadrze v litrech 
+		s out("dta",31)=$g(arr("M",3))'=idfa									;; cizi vozidlo (0 / 1)
+ 		s out("dta",32)=$g(arr("a","dta",39))									;; statni dotace (0 / 1)
+ 		s out("dta",33)=$g(arr("M",0))											;; idrz
+ 		s out("dta",34)=$g(arr("M",4))										 	;; skutecny typ rz
+ 		s out("dta",35)=$g(arr("M",5))			            					;; alternativni typ rz
+ 		s out("dta",36)=$g(arr("a","dta",124)) 									;; druh statni dotace
+ 		s out("dta",37)=$g(arr("a","dta",125)) 									;; datum statni dotace (hrl)
+ 		s out("dta",38)=$g(arr("a","dta",126)) 									;; dotace na nakup
+ 		s out("dta",39)=$g(arr("a","dta",127)) 									;; druh dotace na nakup
+ 		s out("dta",40)=$g(arr("a","dta",128))									;; datum dotace na nakup (hrl)
+ 		s out("dta",41)=$g(arr("a","dta",2))									;; evidencni cislo vozidla
+ 		s out("dta",42)=$g(arr("a","dta",163))									;; nizkopodlazni vozidlo
+	}
+	catch (ex) {
+		s ret=('$$$OK)_"/"_$ze_"/"_$g(err)
+	}
+	q ret
 ]]></Implementation>
 </Method>
 
@@ -2839,7 +3004,7 @@ Zapise naimportovana data</Description>
 <Class name="ALVA.AUDO.API.PlanDopravy">
 <IncludeCode>ALVAAUDO,OBMAC</IncludeCode>
 <Super>%RegisteredObject</Super>
-<TimeChanged>65798,52795.30718</TimeChanged>
+<TimeChanged>65799,49371.091204</TimeChanged>
 <TimeCreated>65724,39379.101241</TimeCreated>
 
 <UDLText name="T">
@@ -2910,10 +3075,19 @@ Zapise naimportovana data</Description>
 	//w ##class(ALVA.AUDO.API.PlanDopravy).ListTurnusy(.sys,.in,.out) zw out
 	w ##class(ALVA.AUDO.API.PlanDopravy).ListObjednavky(.sys,.in,.out) zw out
 	*/
-	s in("par","provoz")=40
-	s in("par","turnus")=730
-	s in("par","datum")="01.02.2021"
-	w ##class(ALVA.AUDO.API.PlanDopravy).ListTurnusSpoje(.sys,.in,.out) zw out
+	//s in("par","provoz")=40
+	//s in("par","turnus")=730
+	//s in("par","datum")="01.02.2021"
+	//w ##class(ALVA.AUDO.API.PlanDopravy).ListTurnusSpoje(.sys,.in,.out) zw out
+	//
+	s in("id")="VSETIN_1|65339|2Z39710|1"
+	k myarr s err=$$gPln^OBapiED("VS_CSAD","user","VSETIN_1",65339,"2Z39710",1,"",.myarr)
+	m in("dta")=myarr
+	w ##class(ALVA.AUDO.API.PlanDopravy).Check(.sys,.in,.out) zw out
+	//s in("par","provoz")=40
+	//s in("par","turnus")=730
+	//s in("par","datum")="01.02.2021"
+	//w ##class(ALVA.AUDO.API.PlanDopravy).ListTurnusSpoje(.sys,.in,.out) zw out
 ]]></Implementation>
 </Method>
 
@@ -4060,6 +4234,95 @@ Zapise naimportovana data</Description>
 ]]></Implementation>
 </Method>
 
+<Method name="Check">
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[&sys:%String,&in:%String,&out:%String]]></FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	// VSTUP:
+	// in("id")=id planovaciho dokladu (idprac|hrl|rz|pc) u noveho pc=""
+	// in("dta",... - data dokladu
+	// VYSTUP:
+	// out("msg",cnt)=info/varovani
+	// out("id",id,"dta")=$lb(prekrytirz,prekrytios,cislovystavenehodokladu,pracoviste,vozidlo,ridic,turnus)
+	s ret=$$$OK
+	s err=""
+	$$$FROMSERVER
+	try {
+		s id=$g(in("id"))
+		s idprac=$p(id,"|",1) s hrl=$p(id,"|",2) s rz=$p(id,"|",3) s pc=$p(id,"|",4)
+		// odvozeni idrpv a zp z idprac
+ 		k myarr s err=$$gPlnPrac^OBapiED(idfa,nmsp,idprac,"",.myarr) i +err zt
+ 		s idprv=$g(myarr("dta",1)) s err=$$mkZP^OBapiED(idfa,idprv,"","",.zp) i +err zt
+		k myarr
+		//kontrola dokladu - vozidlo
+		s isnizkopodlbus=0
+		s tu="" f {
+			s tu=$o(in("dta","arr",2,tu)) i tu="" q
+			k myarr s err=$$gTurOne^OBapiED(idfa,nmsp,zp,tu,hrl,37,"",.myarr)
+			i +$g(myarr("dta",37)) s isnizkopodlbus=1
+			k myarr
+		}
+		i isnizkopodlbus=1 {
+			k myarri,myarr s myarri("rz")=rz s myarri("datum")=$$nd^OBapiED(hrl,0)
+			s isok=##class(ALVA.AUDO.API.ObecneFceRZ).Get(.sys,.myarri,.myarr) 
+			i '$g(myarr("dta",42)) {
+				s out("msg",$i(out("msg")))="turnus vyžaduje nízkopodlažní vozidlo !"
+			}
+		}
+		//upozorneni na prekryti
+		k myarri,mychckarr m myarri=in("dta")
+		s err=$$chckPln^OBapiED(idfa,nmsp,idprac,hrl,rz,pc,.myarri,.mychckarr) i +err zt
+		//zpravy
+		f typ=1,2 {
+			s id="" f {
+				s id=$o(mychckarr("arr",typ,id)) i id="" q
+				s desc=id
+				i typ=2 {
+					k myarros s isok=##class(ALVA.AUDO.API.ObecneFceOs).GetZU(.sys,id,.myarros)
+					s desc=$g(myarros("jmeno"))_" ("_id_")"
+					k myarros
+				}
+				s mycnt="" f {
+					s mycnt=$o(mychckarr("arr",typ,id,"msg",mycnt)) i mycnt="" q
+					s myval=$g(mychckarr("arr",typ,id,"msg",mycnt))
+					s out("msg",$i(out("msg")))=desc_" - "_myval
+				}
+			}
+		}
+		//prekryvajici se doklady
+		s myid="" f {
+			s myid=$o(mychckarr("arr",3,myid)) i myid="" q
+			s myval=$g(mychckarr("arr",3,myid))
+			s myidprac=$p(myid,"|",1) s myhrl=$p(myid,"|",2) s myrz=$p(myid,"|",3) s mypc=$p(myid,"|",4)
+			k myarr s err=$$gPln^OBapiED(idfa,nmsp,myidprac,myhrl,myrz,mypc,"",.myarr) i +err zt
+			s descos="" s desctu=""
+			//popis ridicu
+			s os="" f {
+				s os=$o(myarr("arr",1,os)) i os="" q
+				i os="-" continue
+				k myarros s isok=##class(ALVA.AUDO.API.ObecneFceOs).GetZU(.sys,os,.myarros)
+				i descos'="" s descos=descos_";"
+				s descos=descos_os_"-"_$g(myarros("jmeno"))
+				k myarros
+			} 
+			//popis turnusu
+			s tu="" f {
+				s tu=$o(myarr("arr",2,tu)) i tu="" q
+				i desctu'="" s desctu=desctu_";"
+				s desctu=desctu_tu
+			}
+			s out("id",myid,"dta")=$lb(+$p(myval,"~",1),+$p(myval,"~",2),$g(myarr("dta",1)),myidprac,myrz,descos,desctu)
+			k myarr
+		}
+	}			
+ 	catch (ex) {
+	 	s ret=$$$ERROR($$$GeneralError,$g(err)_ex.DisplayString())
+ 	}
+ 	q ret
+]]></Implementation>
+</Method>
+
 <Method name="Set">
 <ClassMethod>1</ClassMethod>
 <FormalSpec><![CDATA[&sys:%String,&in:%String,&out:%String]]></FormalSpec>
@@ -4093,9 +4356,9 @@ Zapise naimportovana data</Description>
 			m myarr("arr",6)=myoldarr("arr",6)
 			k myoldarr
 			//delete dokladu
-			s err=$$dPln^OBapiED(idfa,nmsp,oldidprac,oldhrl,oldspz,oldpc,"","") i +err zt
+			s err=$$dPln^OBapiED(idfa,nmsp,oldidprac,oldhrl,oldrz,oldpc,"","") i +err zt
 		}
-		k arro s err=$$sPln^OBapiED(idfa,nmsp,idprac,hrl,spz,pc,.myarr,.arro) i +err zt
+		k arro s err=$$sPln^OBapiED(idfa,nmsp,idprac,hrl,rz,pc,.myarr,.arro) i +err zt
  		s out("id")=idprac_"|"_hrl_"|"_rz_"|"_$g(arro("pc"))
  		/*
  		//sherlock
@@ -4193,7 +4456,7 @@ Zapise naimportovana data</Description>
 			k arri,arro
 			//odstraneni dokladu z databaze
 			s arri("fullname")=fullname
-			s err=$$dPln^OBapiED(idfa,nmsp,idprac,hrl,spz,pc,.arri,.arro) i +err zt
+			s err=$$dPln^OBapiED(idfa,nmsp,idprac,hrl,rz,pc,.arri,.arro) i +err zt
 			i $g(arro("stt"))=1 {
 				s $li(out("id"),($ll($g(out("id")))+1))=idprac_"|"_hrl_"|"_rz_"|"_pc
 				/*
@@ -12973,6 +13236,191 @@ Zapise naimportovana data</Description>
 </Class>
 
 
+<Class name="ALVA.AUDO.TISKY.OS.AUDO0145">
+<IncludeCode>ALVAAUDO,ALVAEDISON,OBMAC</IncludeCode>
+<Super>%RegisteredObject</Super>
+<TimeChanged>65799,51256.554458</TimeChanged>
+<TimeCreated>65799,37586.450019</TimeCreated>
+
+<Method name="test">
+<ClassMethod>1</ClassMethod>
+<Implementation><![CDATA[
+	//d ##class(ALVA.AUDO.TISKY.OS.AUDO0145).test()
+	s sys("U","delimiter")=$c(0)
+    s sys("U","IdFa")="VS_CSAD"
+    s sys("U","SystemDB")="mline"
+    s sys("U","DATA")="user"
+    s sys("U","MLP")=1
+    s sys("U","loginName")="login"
+    s sys("U","fullName")="name"
+    //
+    k in,out
+    s in("vypishodin")=0
+    s in("datumOd")="1.11.2019"
+	s in("datumDo")="30.11.2019"
+    w ##class(ALVA.AUDO.TISKY.OS.AUDO0145).Print(.sys,.in,.out) w ! zw out
+]]></Implementation>
+</Method>
+
+<Method name="Print">
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[&sys:%String,&in:%String,&out:%String]]></FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	// =============================================
+	// vypis rozvrhu pracovni doby a prescasu ridicu
+	// =============================================
+	//
+	// VSTUP:
+	// in("backgroundtask")=[0/1]
+	// in("taskid")=taskid
+	// in("datumOd")=dd.mm.rrrr
+	// in("datumDo")=dd.mm.rrrr
+	// in("vypishodin")=0/1 0 hh.dd / 1 hh:mm
+	// VYSTUP:
+	// out("idx")=idx
+	// out("tab")=tab (main)
+	// out("nazev")=nazev
+	//
+	s ret=$$$OK
+	s err=""
+	$$$FROMSERVER
+	try {
+	    //pracovni global
+	    s mywrk=$$gWrkALVAAD^OBapiED() s myglb="^||wrk.ALVA.AD("_mywrk_")" k @myglb				//data
+	    s mywrk=$$gWrkALVAAD^OBapiED() s myglbos="^||wrk.ALVA.AD("_mywrk_")" k @myglbos			//pomocny ridici
+	    //uloha na pozadi
+	    i $g(in("backgroundtask")) d ##class(ALVA.EDISON.BackgroundTask).Update(.err,idfa,$g(in("taskid")),$$$BackgroundTaskStatePending,"","vytvářím tiskovou sestavu",$j)
+	    k out
+	    s hrlOd=$$dn^OBapiED($g(in("datumOd")))
+	    s hrlDo=$$dn^OBapiED($g(in("datumDo")))
+	    s vypishodin=$g(in("vypishodin"))
+	    //ciselniky
+	    i $g(in("backgroundtask")) d ##class(ALVA.EDISON.BackgroundTask).Update(.err,idfa,$g(in("taskid")),$$$BackgroundTaskStatePending,"","vytvářím seznam řidičů",$j)
+	    //jmena vsech ridicu
+	    s actnmsp=$znspace
+		k arri
+		s arri("IdFa")=idfa
+		s arri("DataNamespace")=nmsp
+		s arri("GlbOut")=myglbos
+		s arri("VOLANO_Z")="AGENDA"
+		s err=##class(ALVA.MZDY.Ridici).LoadZamListFast(.arri,"")
+		i actnmsp'=$znspace zn actnmsp
+	    //
+	    i $g(in("backgroundtask")) d ##class(ALVA.EDISON.BackgroundTask).Update(.err,idfa,$g(in("taskid")),$$$BackgroundTaskStatePending,"","vytvářím přehled přescasů",$j)
+	    s err=$$gValOsPrescasy^OBapiED(idfa,nmsp,hrlOd,hrlDo,myglb,"","") i +err zt
+	    //
+		s wrkSS=##class(ALVA.TISK.Main).GetNewGlobalIndex()
+        s glb="^CacheTempSS("_wrkSS_","_"""OUT"""_","_"""mltab"""_")"
+        s tab="main"
+        s nazev="rozvrh pracovní doby řidičů za období: "_$g(in("datumOd"))_" - "_$g(in("datumOd"))
+        s out("idx")=wrkSS
+		s out("tab")=tab
+		s out("nazev")=nazev
+		i $g(in("backgroundtask")) d ##class(ALVA.EDISON.BackgroundTask).Update(.err,idfa,$g(in("taskid")),$$$BackgroundTaskStatePending,"","vytvářím tiskový vástup",$j)
+		//definice tabulky
+		s colHead="os~jméno~~přesčas||hh.dd~suma||hh.dd" 	//hlavicky
+		s colTyp="N~T~T~N2~N2"								//datovy typ
+		i +vypishodin {
+			s $p(colHead,"~",4)="přesčas||hh:mm"
+			s $p(colHead,"~",5)="suma||hh:mm"
+			s $p(colTyp,"~",4)="T"
+			s $p(colTyp,"~",5)="T"
+		}
+		s colForm=">~<~<~>~>"								//zarovnani
+		s @glb@(tab,"Format")="<"
+		s @glb@(tab,"STYP")="T"
+		s @glb@(tab,"Name")=nazev
+		// definice sloupců
+		f cnt=1:1:$l(colHead,"~") {
+			s @glb@(tab,"SL",cnt)=$$cnvTxt^OBapiED($p(colHead,"~",cnt),"|",$c(13,10))
+		 	s @glb@(tab,"SL",cnt,"Format")=$p(colForm,"~",cnt)
+		 	s @glb@(tab,"SL",cnt,"Typ")=$p(colTyp,"~",cnt)
+		}
+		f hrl=hrlOd:1:hrlDo {
+			// datum
+		 	s dat=$$nd^OBapiED(hrl,0)
+		 	// den
+		 	s day=$$ntd^OBapiED(hrl)
+		 	//sloupec obdobi-den
+			s idcol=hrl
+			s desc=dat_$c(13,10)_day
+			i 'vypishodin s desc=desc_$c(13,10)_"hh.dd"
+			i +vypishodin s desc=desc_$c(13,10)_"hh:mm"
+			s @glb@(tab,"SL",idcol)=desc
+		 	//i (day="So")!(day="Ne") s @glb@(tab,"SL",idcol,"Priorita")=1
+		 	s @glb@(tab,"SL",idcol,"Format")=">"
+		 	s @glb@(tab,"SL",idcol,"Typ")="N2"
+		 	i +vypishodin s @glb@(tab,"SL",idcol,"Typ")="T"
+		}
+		// ============
+		// data tabulek
+		// ============
+		//ridici podle jmena
+		k @myglbos@("RJMOS")
+		s os="" f {
+			s os=$o(@myglb@("arr",1,os)) i os="" q
+			s jmeno=$g(@myglbos@("OS",os))
+			s idx=$$cnvDiaInd^OBapiED(jmeno_os)
+			s @myglbos@("RJMOS",idx)=os
+		}
+		s priorita=0
+		s idx="" f {
+			s idx=$o(@myglbos@("RJMOS",idx)) i idx="" q
+			s os=$g(@myglbos@("RJMOS",idx))
+			s jmeno=$g(@myglbos@("OS",os))
+			s myval=$g(@myglb@("arr",1,os))
+		    s minallrozvrh=$lg(myval,1)
+		    s minallodpracovano=$lg(myval,2)
+		    s priorita=priorita+1 i priorita>1 s priorita=0
+			//rozvrh
+			s idrowr=$i(@glb@(tab,"RD"))
+			s @glb@(tab,"RD",idrowr)=""
+			i priorita s @glb@(tab,"RD",idrowr,"Priorita")=1
+			s @glb@(tab,"Dta",idrowr,1)=os
+		    s @glb@(tab,"Dta",idrowr,2)=jmeno
+		    s @glb@(tab,"Dta",idrowr,3)="rozv."
+		    s @glb@(tab,"Dta",idrowr,5)=minallrozvrh
+		    //skutecnost
+		    s idrows=$i(@glb@(tab,"RD"))
+			s @glb@(tab,"RD",idrows)=""
+			i priorita s @glb@(tab,"RD",idrows,"Priorita")=1
+			s @glb@(tab,"Dta",idrows,1)=os
+		    s @glb@(tab,"Dta",idrows,2)=jmeno
+			s @glb@(tab,"Dta",idrows,3)="skut."
+			s @glb@(tab,"Dta",idrows,4)=(minallodpracovano-minallrozvrh)
+			s @glb@(tab,"Dta",idrows,5)=minallodpracovano
+		    f hrl=hrlOd:1:hrlDo {
+			    s myval=$g(@myglb@("arr",1,os,hrl))
+			    s minrozvrh=$lg(myval,1)
+			    s minodpracovano=$lg(myval,2)
+			    i minrozvrh s @glb@(tab,"Dta",idrowr,hrl)=minrozvrh
+			    i minodpracovano s @glb@(tab,"Dta",idrows,hrl)=minodpracovano
+		    } 
+		}
+		//konverze minut
+		s idrow="" f {
+			s idrow=$o(@glb@(tab,"Dta",idrow)) i idrow="" q
+			s idcol=(4-.01) f {
+				s idcol=$o(@glb@(tab,"Dta",idrow,idcol)) i idcol="" q
+				s myval=$g(@glb@(tab,"Dta",idrow,idcol))
+				i myval {
+					i 'vypishodin s @glb@(tab,"Dta",idrow,idcol)=$$mc^OBapiED(myval)
+					i +vypishodin s @glb@(tab,"Dta",idrow,idcol)=$tr($j($$mh^OBapiED(myval),0,2),".",":")
+				}
+			}	
+		}
+		k @myglb k @myglbos		
+	}	
+	catch (ex) {
+		s ret=$$$ERROR($$$GeneralError,$g(err)_ex.DisplayString())
+	}
+ q ret
+]]></Implementation>
+</Method>
+</Class>
+
+
 <Class name="ALVA.AUDO.TISKY.SP.AUDO0023">
 <IncludeCode>ALVAAUDO,ALVAEDISON,OBMAC</IncludeCode>
 <Super>%RegisteredObject</Super>
@@ -16629,7 +17077,7 @@ Zapise naimportovana data</Description>
 </Class>
 
 
-<Project name="ALVA_AUDOAPI" LastModified="2021-02-07 22:09:44.95237">
+<Project name="ALVA_AUDOAPI" LastModified="2021-02-24 13:30:59.620418">
   <Items>
     <ProjectItem name="ALVA.AUDO.API.Ciselniky" type="CLS"></ProjectItem>
     <ProjectItem name="ALVA.AUDO.API.IO.Prytanis" type="CLS"></ProjectItem>
@@ -16660,6 +17108,7 @@ Zapise naimportovana data</Description>
     <ProjectItem name="ALVA.AUDO.Sherlock" type="CLS"></ProjectItem>
     <ProjectItem name="ALVA.AUDO.TISKY.OBJ.AUDO0017" type="CLS"></ProjectItem>
     <ProjectItem name="ALVA.AUDO.TISKY.OBJ.AUDO0124" type="CLS"></ProjectItem>
+    <ProjectItem name="ALVA.AUDO.TISKY.OS.AUDO0145" type="CLS"></ProjectItem>
     <ProjectItem name="ALVA.AUDO.TISKY.SP.AUDO0023" type="CLS"></ProjectItem>
     <ProjectItem name="ALVA.AUDO.TISKY.SP.AUDO0024" type="CLS"></ProjectItem>
     <ProjectItem name="ALVA.AUDO.TISKY.TS.AUDO0075" type="CLS"></ProjectItem>
@@ -16778,7 +17227,7 @@ Zapise naimportovana data</Description>
 ]]></Routine>
 
 
-<Routine name="OBapiED" type="INT" languagemode="0" timestamp="65735,51540.111453"><![CDATA[
+<Routine name="OBapiED" type="INT" languagemode="0" timestamp="65799,42561.547989"><![CDATA[
 OBapiED
  // =====================
  // API fce pro AD EDISON 
@@ -16835,6 +17284,7 @@ sNInfoSp(idfa,nmsp,li,sp,hrl,in,out) q $$sNInfoSp^OBapiEDSp(idfa,nmsp,li,sp,hrl,
  // turnusy
 isTur(idfa,nmsp,zp,tu,hrl,in,out) q $$isTur^OBapiEDTur(idfa,nmsp,zp,tu,hrl,.in,.out)
 gTur(idfa,nmsp,zp,tu,hrl,in,out) q $$gTur^OBapiEDTur(idfa,nmsp,zp,tu,hrl,.in,.out)
+gTurZU(idfa,nmsp,zp,tu,hrl,in,out) q $$gTurZU^OBapiEDTur(idfa,nmsp,zp,tu,hrl,.in,.out)
 gTurOne(idfa,nmsp,zp,tu,hrl,id,in,out) q $$gTurOne^OBapiEDTur(idfa,nmsp,zp,tu,hrl,id,.in,.out)
 sTur(idfa,nmsp,zp,tu,hrl,in,out) q $$sTur^OBapiEDTur(idfa,nmsp,zp,tu,hrl,.in,.out)
 lTur(idfa,nmsp,in,out) q $$lTur^OBapiEDTur(idfa,nmsp,.in,.out)
@@ -16937,6 +17387,7 @@ chngPlnPracTypCisDoc(idfa,nmsp,idprac,typdoc,newtypcis,in,out) q $$chngPlnPracTy
 gPln(idfa,nmsp,idprac,hrl,spz,pc,in,out) q $$gPln^OBapiEDPlan(idfa,nmsp,idprac,hrl,spz,pc,.in,.out)
 sPln(idfa,nmsp,idprac,hrl,spz,pc,in,out) q $$sPln^OBapiEDPlan(idfa,nmsp,idprac,hrl,spz,pc,.in,.out)
 dPln(idfa,nmsp,idprac,hrl,spz,pc,in,out) q $$dPln^OBapiEDPlan(idfa,nmsp,idprac,hrl,spz,pc,.in,.out)
+chckPln(idfa,nmsp,idprac,hrl,rz,pc,in,out) q $$chckPln^OBapiEDPlan(idfa,nmsp,idprac,hrl,rz,pc,.in,.out)
 isPln(idfa,nmsp,idprac,hrl,spz,pc,in,out) q $$isPln^OBapiEDPlan(idfa,nmsp,idprac,hrl,spz,pc,.in,.out)
 lPln(idfa,nmsp,in,out) q $$lPln^OBapiEDPlan(idfa,nmsp,.in,.out)
 gPlnNote(idfa,nmsp,idprac,hrl,in,out) q $$gPlnNote^OBapiEDPlan4(idfa,nmsp,idprac,hrl,.in,.out)
@@ -16981,6 +17432,7 @@ gScDta(idfa,nmsp,idprac,wrk,in,out) q $$gScDta^OBapiEDSC(idfa,nmsp,idprac,wrk,.i
 cnvScDta(idfa,nmsp,in,out) q $$cnvScDta^OBapiEDSC(idfa,nmsp,.in,.out)
  // doklady dzva
 gDz(idfa,nmsp,zp,rrmm,doc,in,out) q $$gDz^OBapiEDDz(idfa,nmsp,zp,rrmm,doc,.in,.out)
+gDzZU(idfa,nmsp,zp,rrmm,doc,in,out) q $$gDzZU^OBapiEDDz(idfa,nmsp,zp,rrmm,doc,.in,.out)
 gDzRzDta(idfa,nmsp,zp,rrmm,doc,in,out) q $$gDzRzDta^OBapiEDDz(idfa,nmsp,zp,rrmm,doc,.in,.out)
 gDzOsDta(idfa,nmsp,zp,rrmm,doc,in,out) q $$gDzOsDta^OBapiEDDz(idfa,nmsp,zp,rrmm,doc,.in,.out)
 sDzOsTuvDta(idfa,nmsp,zp,rrmm,doc,os,in,out) q $$sDzOsTuvDta^OBapiEDDz(idfa,nmsp,zp,rrmm,doc,os,.in,.out)
@@ -17079,7 +17531,7 @@ lGrfRz(idfa,nmsp,hrlfrom,hrlto,in,out) q $$lGrfRz^OBapiEDGrafikonRz(idfa,nmsp,hr
  // auta, data z mytneho systemu
 sMYTRz(idfa,nmsp,rz,glb,in,out) q $$sMYTRz^OBapiEDMYTRz(idfa,nmsp,rz,glb,.in,.out)
 calcMYTRz(idfa,nmsp,rz,hrlFrom,tmFrom,hrlTo,tmTo,in,out) q $$calcMYTR^OBapiEDMYTRzz(idfa,nmsp,rz,hrlFrom,tmFrom,hrlTo,tmTo,.in,.out)
- // auta, prevod km a phm na ostatní auta
+ // auta, prevod km a phm na ostatni auta
 lUsrDocRz(idfa,nmsp,in,out) q $$lUsrDocRz^OBapiEDUsrDocRz(idfa,nmsp,.in,.out)
 gUsrDocRz(idfa,nmsp,zp,rrmm,rz,in,out) q $$gUsrDocRz^OBapiEDUsrDocRz(idfa,nmsp,zp,rrmm,rz,.in,.out)
 sUsrDocRz(idfa,nmsp,zp,rrmm,rz,in,out) q $$sUsrDocRz^OBapiEDUsrDocRz(idfa,nmsp,zp,rrmm,rz,.in,.out)
@@ -17102,6 +17554,7 @@ mkNdmlDieOs(idfa,nmsp,glb,in,out) q $$mkNdmlDieOs^OBapiEDDtaOs(idfa,nmsp,glb,.in
 GetMzdDataPopis(idfa,nmsp,in,out) q $$gDscOsExport^OBapiEDOsExport(idfa,nmsp,.in,.out)
 GetMzdData(idfa,nmsp,rrrrmm,glb,in,out) q $$gValOsExport^OBapiEDOsExport(idfa,nmsp,rrrrmm,glb,.in,.out)
 GetMzdKA(idfa,nmsp,in,out) q $$gKaOs^OBapiEDOsExport(idfa,nmsp,.in,.out)
+gValOsPrescasy(idfa,nmsp,hrlod,hrldo,glb,in,out) q $$gValOsPrescasy^OBapiEDOsExport(idfa,nmsp,hrlod,hrldo,glb,.in,.out)
  // ridici, jizda bez nehod
 chngJBN(idfa,sysnmsp,os,in,out) q $$chngJBN^OBapiEDJBN(idfa,sysnmsp,os,.in,.out)
 gJBN(idfa,sysnmsp,os,in,out) q $$gJBN^OBapiEDJBN(idfa,sysnmsp,os,.in,.out)
@@ -23471,7 +23924,7 @@ err s $zt="" q "1"_"~"_$ze_"/"_$tr($g(err),"~","/")
 ]]></Routine>
 
 
-<Routine name="OBapiEDDz" type="INT" languagemode="0" timestamp="65772,41359.871929"><![CDATA[
+<Routine name="OBapiEDDz" type="INT" languagemode="0" timestamp="65799,33042.837686"><![CDATA[
 OBapiEDDz q
  // api DZVA
 isDz(idfa,nmsp,zp,rrmm,doc,in,out)
@@ -24016,6 +24469,25 @@ gDz(idfa,nmsp,zp,rrmm,doc,in,out)
  */
  ;;
  q 0
+gDzZU(idfa,nmsp,zp,rrmm,doc,in,out)
+ // err=$$gDzZU(idfa,nmsp,zp,rrmm,doc,in,out) - vrati data dzva - zakladni udaje 
+ n (idfa,nmsp,zp,rrmm,doc,in,out)
+ s $zt="err" k out s err=""
+ //
+ i $g(idfa)="" q "1~idfa="
+ i $g(nmsp)="" q "1~nmsp="
+ i $g(zp)="" q "1~zp="
+ i $g(rrmm)="" q "1~rrmm="
+ i $g(doc)="" q "1~doc="
+ //
+ i '$d(^[nmsp]OBD(zp,rrmm,doc)) q "1~neexistujici doklad"
+ //
+ // data dzva - obecny
+ s val=$p($g(^[nmsp]OBD(zp,rrmm,doc)),"#",1)
+ f cnt=1:1:$$gPcPDU() s out("dta",cnt)=$p(val,":",cnt)
+ // konverze dat
+ s:$g(out("dta",4)) out("dta",4)=$$dn^OBapiED(out("dta",4))
+ q 0
  //
 gDzRzDta(idfa,nmsp,zp,rrmm,doc,in,out)
  // err=$$gDzRzDta(idfa,nmsp,zp,rrmm,doc,in,out) - vrati data dzva zakladni a pro rz - vyhodnoceni
@@ -24066,6 +24538,8 @@ gDzOsDta(idfa,nmsp,zp,rrmm,doc,in,out)
  s out("dta",7)=$p(myval,":",7)
  // nsrz
  s out("dta",16)=$p(myval,":",16)
+ // smena z volna
+ s out("dta",34)=$p(myval,":",34)
  // ridici - vyhodnoceni
  s seqosc=0
  s osc="" f  s osc=$o(^[nmsp]OBD(zp,rrmm,doc,osc)) q:(osc="")!(osc?.a)  d
@@ -31937,7 +32411,7 @@ err s $zt="" q 1_"~"_$ze_"/"_$tr($g(err),"~","/")
 ]]></Routine>
 
 
-<Routine name="OBapiEDOsExport" type="INT" languagemode="0" timestamp="65798,44509.486051"><![CDATA[
+<Routine name="OBapiEDOsExport" type="INT" languagemode="0" timestamp="65799,34903.814994"><![CDATA[
 OBapiEDOsExport
  //$$gDscOsExport^OBapiEDOsExport("VS_CSAD","user",.in,.out)
  //$$gValOsExport^OBapiEDOsExport("VS_CSAD","user",1305,"^w",.i,.o)
@@ -32317,10 +32791,11 @@ gKaOs(idfa,nmsp,in,out)
  //
  q 0
 gValOsPrescasy(idfa,nmsp,hrlod,hrldo,glb,in,out)
+ //w $$gValOsPrescasy^OBapiEDOsExport("VS_CSAD","USER",$$dn^OBapiED("1.11.2019"),$$dn^OBapiED("30.11.2019"),"^||w","","")
  // @glb@("arr",1,osc)=$lb(minrozvrh,minodpracovano)
  // @glb@("arr",1,osc,hrl)=$lb(minrozvrh,minodpracovano)
- // napocet z dokladu predelat na fci $$mkSumDtaOs !
- n (idfa,nmsp,hrlod,hrldo,glb,in,out) s $zt="err" k out s err=""
+ n (idfa,nmsp,hrlod,hrldo,glb,in,out)
+ s err=""
  // chyby
  i $g(idfa)="" s err="idfa=" zt "merr"
  i $g(nmsp)="" s err="nmsp=" zt "merr"
@@ -32340,35 +32815,85 @@ gValOsPrescasy(idfa,nmsp,hrlod,hrldo,glb,in,out)
 		 }
  	 }
  }
- //ciselnik grafikonovych polozek
- k arrcis20 s err=$$gCis^OBapiED(idfa,nmsp,20,"",.arrcis20) i +err zt
- //grafikon
- k arri,wrk s arri("par",1)=1
- s err=$$lGrfOs^OBapiED(idfa,nmsp,hrlod,hrldo,.arri,.wrk) i +err zt
- s os="" f {
-	 s os=$o(^CacheTempJB(wrk,dz,os)) i os="" q
-	 s hrl=hrlod-.01 f {
-		 s hrl=$o(^CacheTempJB(wrk,dz,os,hrl)) i (hrl="")!(hrl>hrldo) q
-		 s idgrf="" f {
-			 s idgrf=$o(^CacheTempJB(wrk,dz,os,hrl,idgrf)) i idgrf="" q
-			 k myarrgrf s err=$$gGrfOs^OBapiED(idfa,nmsp,os,hrl,idgrf,"",.myarrgrf) i +err zt
-			 //neni grafikon
-			 i '$d(arrcis20("arr",idgrf)) {
-				 s minodpracovano=$g(myarrgrf("dta",2))
+ //obdobi pro vyhledani dokladu
+ k myrrmmarr s err=$$gArrRrmmFromHrl^OBapiED((hrlod-15),(hrldo+15),1,.myrrmmarr) i +err zt
+ //======================
+ //doklady DZVA za obdobi
+ //======================
+ k myarri m myarri("rrmm")=myrrmmarr s err=$$lDz^OBapiED(idfa,nmsp,.myarri,.wrk) i +err zt
+ s zp="" f {
+	 s zp=$o(^CacheTempJB(wrk,zp)) i zp="" q
+	 s rrmm="" f {
+		 s rrmm=$o(^CacheTempJB(wrk,zp,rrmm)) i rrmm="" q
+		 s cdoc="" f {
+			 s cdoc=$o(^CacheTempJB(wrk,zp,rrmm,cdoc)) i cdoc="" q
+			 //nactu vykony ridicu
+			 k myarr s err=$$gDzOsDta^OBapiED(idfa,nmsp,zp,rrmm,cdoc,"",.myarr) i +err zt
+			 //ne smena z volna
+			 i +$g(myarr("dta",34)) continue
+			 //datum jizdy
+			 s hrl=$g(myarr("dta",4)) i (hrl<hrlod)!(hrl>hrldo) continue
+			 //ridici
+			 s os="" f {
+				 s os=$o(myarr("osc",os)) i os="" q
+				 i os="-" continue
+				 s minodpracovano=$g(myarr("osc",os,"tuv",11))
 				 i +minodpracovano {
 					 s myval=$g(@glb@("arr",1,os,hrl))
 					 s $li(myval,2)=$lg(myval,2)+minodpracovano
 					 s @glb@("arr",1,os,hrl)=myval
 				 }
 			 }
-			 //je grafikon, zatim taky, uvidime, zda nebude nastaveni
-			 else {
-				 s minodpracovano=$g(myarrgrf("dta",2))
+		 }
+	 }
+ }
+ k ^CacheTempJB(wrk)
+ //====================
+ //doklady SJ za obdobi
+ //====================
+ k myarri m myarri("rrmm")=myrrmmarr s err=$$lSj^OBapiED(idfa,nmsp,.myarri,.wrk) i +err zt
+ s zp="" f {
+	 s zp=$o(^CacheTempJB(wrk,zp)) i zp="" q
+	 s rrmm="" f {
+		 s rrmm=$o(^CacheTempJB(wrk,zp,rrmm)) i rrmm="" q
+		 s cdoc="" f {
+			 s cdoc=$o(^CacheTempJB(wrk,zp,rrmm,cdoc)) i cdoc="" q
+			 //nactu vykony ridicu
+			 k myarr s err=$$gSjOsDta^OBapiED(idfa,nmsp,zp,rrmm,cdoc,"",.myarr) i +err zt
+			 //datum jizdy
+			 s hrl=$g(myarr("dta",6)) i (hrl<hrlod)!(hrl>hrldo) continue
+			 //ridici
+			 s os="" f {
+				 s os=$o(myarr("osc",os)) i os="" q
+				 i os="-" continue
+				 s minodpracovano=$g(myarr("osc",os,"dta",21))
 				 i +minodpracovano {
 					 s myval=$g(@glb@("arr",1,os,hrl))
 					 s $li(myval,2)=$lg(myval,2)+minodpracovano
 					 s @glb@("arr",1,os,hrl)=myval
 				 }
+			 }
+		 }
+	 }
+ }
+ k ^CacheTempJB(wrk)
+ //========
+ //grafikon
+ //========
+ k arri,wrk s arri("par",1)=0
+ s err=$$lGrfOs^OBapiED(idfa,nmsp,hrlod,hrldo,.arri,.wrk) i +err zt
+ s os="" f {
+	 s os=$o(^CacheTempJB(wrk,dz,os)) i os="" q
+	 s hrl="" f {
+		 s hrl=$o(^CacheTempJB(wrk,dz,os,hrl)) i (hrl="") q
+		 s idgrf="" f {
+			 s idgrf=$o(^CacheTempJB(wrk,dz,os,hrl,idgrf)) i idgrf="" q
+			 k myarrgrf s err=$$gGrfOs^OBapiED(idfa,nmsp,os,hrl,idgrf,"",.myarrgrf) i +err zt
+			 s minodpracovano=$g(myarrgrf("dta",2))
+			 i +minodpracovano {
+				 s myval=$g(@glb@("arr",1,os,hrl))
+				 s $li(myval,2)=$lg(myval,2)+minodpracovano
+				 s @glb@("arr",1,os,hrl)=myval
 			 }
 		 }
 	 }
@@ -45403,7 +45928,7 @@ CRDZLS
 ]]></Routine>
 
 
-<Routine name="OBapiEDTur" type="INT" languagemode="0" timestamp="65772,50437.747465"><![CDATA[
+<Routine name="OBapiEDTur" type="INT" languagemode="0" timestamp="65799,42200.827306"><![CDATA[
 OBapiEDTur q
  // ========================================
  // turnusy - EDISON popis v ^OBapiEDTurInfo
@@ -45562,6 +46087,33 @@ gTur(idfa,nmsp,zp,tu,hrl,in,out)
  //^[nmsp]OBT(zp,tu,hrl,"S",li.sp)=mapr:mapo - generovat pri zapisu turnusu
  //
  //^[nmsp]OBT(zp,tu,hrl,"DENR")
+ q 0
+ //
+gTurZU(idfa,nmsp,zp,tu,hrl,in,out)
+ // err=$$gTurZU(idfa,nmsp,zp,tu,hrl,.in,.out) - vrati zakladni udaje turnusu
+ //  - in
+ //  - out("hrl")=casova varianta turnusu
+ //  - out("dta",...)
+ n (idfa,nmsp,zp,tu,hrl,in,out)
+ k out s $zt="err" S err=""
+ // kontrola parametru
+ i $g(idfa)="" s err="idfa=" zt "merr"
+ i $g(nmsp)="" s err="nmsp=" zt "merr"
+ i $g(zp)="" s err="zp=" zt "merr"
+ i $g(tu)="" s err="tu=" zt "merr"
+ i $g(hrl)="" s err="hrl=" zt "merr"
+ // ===================
+ i '$d(^[nmsp]OBT(zp,tu)) q "1~turnus "_zp_"/"_tu_" neni definovan"
+ s hrl=$o(^[nmsp]OBT(zp,tu,(hrl+.01)),-1) q:hrl="" "1~od turnusu "_zp_"/"_tu_" neni prislusna casova varianta"
+ s out("hrl")=hrl
+ // zakladni udaje turnusu
+ s val=$g(^[nmsp]OBT(zp,tu,hrl))
+ f cnt=1:1:$$gPcPZU s out("dta",cnt)=$p(val,":",cnt)
+ // datove upravy - platnost
+ s out("dta",7)=$p(out("dta",7),"/",1)_"~"_$p(out("dta",7),"/",3)
+ // datove upravy - cas.var
+ s out("dta",11)=hrl
+ // ======================
  q 0
  //
 gTurOne(idfa,nmsp,zp,tu,hrl,id,in,out)
